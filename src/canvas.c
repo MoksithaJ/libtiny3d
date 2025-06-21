@@ -1,10 +1,13 @@
-#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 #include "canvas.h"
 
 void set_pixel_f(canvas_t *canvas, float x, float y, float intensity)
 {
     int x0, y0, x1, y1;
+    // printf("set_pixel_f: drawing at (%.2f, %.2f)\n", x, y);
+
     // round a floating-point pixel coordinate((x, y) = (10.3, 5.7))to the nearest 4 pixel coordinates
     x0 = (int)floor(x);
     y0 = (int)floor(y);
@@ -74,5 +77,123 @@ void draw_line_f(canvas_t *canvas, float x0, float y0, float x1, float y1, float
 
         x += Xinc;
         y += Yinc;
+    }
+}
+
+void canvas_save_pgm(canvas_t *canvas, const char *filename)
+{
+    FILE *f = fopen(filename, "w");
+    if (!f)
+        return;
+
+    fprintf(f, "P2\n%d %d\n255\n", canvas->width, canvas->height);
+
+    for (int y = 0; y < canvas->height; y++)
+    {
+        for (int x = 0; x < canvas->width; x++)
+        {
+            float b = canvas->brightnessOfPixel[y][x];
+            int pixelvalue = (int)(b * 255.0f);
+            if (pixelvalue > 255)
+                pixelvalue = 255;
+            if (pixelvalue < 0)
+                pixelvalue = 0;
+            fprintf(f, "%d ", pixelvalue);
+        }
+        fprintf(f, "\n");
+    }
+    fclose(f);
+}
+
+void canvas_init(canvas_t *canvas, int width, int height)
+{
+    //
+    canvas->width = width;
+    canvas->height = height;
+
+    // allocate array of row pointers
+    canvas->brightnessOfPixel = (float **)malloc(height * sizeof(float *));
+    if (!canvas->brightnessOfPixel)
+    {
+        // allocation failed
+        return;
+    }
+
+    // allocate each row
+    for (int y = 0; y < height; y++)
+    {
+        canvas->brightnessOfPixel[y] = (float *)malloc(width * sizeof(float));
+        if (!canvas->brightnessOfPixel[y])
+        {
+            // allocation failed free previously allocated rows
+            for (int i = 0; i < y; i++)
+            {
+                free(canvas->brightnessOfPixel[i]);
+            }
+            free(canvas->brightnessOfPixel);
+            canvas->brightnessOfPixel = NULL;
+            return;
+        }
+    }
+    // initialize all pixels to zer brightness (black)
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            canvas->brightnessOfPixel[y][x] = 0.0f;
+        }
+    }
+}
+
+void canvas_clear(canvas_t *canvas)
+{
+
+    for (int y = 0; y < canvas->height; y++)
+    {
+        for (int x = 0; x < canvas->width; x++)
+        {
+            canvas->brightnessOfPixel[y][x] = 0.0f;
+        }
+    }
+}
+void canvas_free(canvas_t *canvas)
+{
+    if (canvas->brightnessOfPixel)
+    {
+        for (int y = 0; y < canvas->height; y++)
+        {
+            free(canvas->brightnessOfPixel[y]);
+        }
+        free(canvas->brightnessOfPixel);
+        canvas->brightnessOfPixel = NULL;
+    }
+}
+
+void canvas_print_ascii(canvas_t *canvas)
+{
+    for (int y = 0; y < canvas->height; y++)
+    {
+        for (int x = 0; x < canvas->width; x++)
+        {
+            float b = canvas->brightnessOfPixel[y][x];
+
+            // Map brightness to a character
+            char ch;
+            if (b > 0.9f)
+                ch = '@';
+            else if (b > 0.7f)
+                ch = '#';
+            else if (b > 0.5f)
+                ch = '*';
+            else if (b > 0.3f)
+                ch = '+';
+            else if (b > 0.1f)
+                ch = '.';
+            else
+                ch = ' ';
+
+            printf("%c", ch);
+        }
+        printf("\n");
     }
 }
