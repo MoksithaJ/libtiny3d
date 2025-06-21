@@ -135,7 +135,7 @@ void canvas_init(canvas_t *canvas, int width, int height)
             return;
         }
     }
-    // initialize all pixels to zer brightness (black)
+    // initialize all pixels to zer0 brightness (black)
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
